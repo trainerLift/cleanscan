@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#4A1228" />
+  <title>CleanScan by Cycle Lifting</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bordeaux-deep: #4A1228;
+      --bordeaux-mid: #6B1F3A;
+      --bordeaux-light: #8B2F4E;
+      --gold: #C9A84C;
+      --gold-light: #E8C870;
+      --ivory: #FAF6F0;
+      --ivory-mid: #F0E8DC;
+      --red: #C0392B;
+      --orange: #D4821A;
+      --green: #2E7D52;
+      --text-dark: #1A0A10;
+      --text-mid: #5A3040;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--ivory);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--ivory);
+      position: relative;
+    }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, var(--bordeaux-deep) 0%, var(--bordeaux-mid) 100%);
+      padding: 20px 20px 16px;
+      text-align: center;
+      box-shadow: 0 2px 12px rgba(74,18,40,0.3);
+    }
+
+    header h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--gold-light);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    header p {
+      font-size: 11px;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      background: var(--bordeaux-deep);
+      border-bottom: 2px solid var(--gold);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px 8px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      background: none;
+      text-transform: uppercase;
+    }
+
+    .tab.active {
+      color: var(--gold-light);
+      border-bottom: 2px solid var(--gold-light);
+      margin-bottom: -2px;
+    }
+
+    .tab:hover:not(.active) { color: rgba(255,255,255,0.8); }
+
+    /* CONTENT */
+    .tab-content { display: none; flex: 1; overflow-y: auto; }
+    .tab-content.active { display: flex; flex-direction: column; }
+
+    /* SCANNER */
+    .scanner-section { padding: 24px 20px; flex: 1; }
+
+    .upload-area {
+      border: 2px dashed var(--bordeaux-light);
+      border-radius: 16px;
+      padding: 40px 20px;
+      text-align: center;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-area:hover { border-color: var(--gold); background: var(--ivory-mid); }
+    .upload-area.dragover { border-color: var(--gold); background: var(--ivory-mid); transform: scale(1.01); }
+
+    .upload-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      background: linear-gradient(135deg, var(--bordeaux-deep), var(--bordeaux-mid));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .upload-icon svg { width: 32px; height: 32px; fill: var(--gold-light); }
+
+    .upload-area h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--bordeaux-deep);
+      margin-bottom: 8px;
+    }
+
+    .upload-area p { font-size: 13px; color: var(--text-mid); line-height: 1.5; }
+
+    .upload-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border-radius: 50px;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--bordeaux-mid), var(--bordeaux-light));
+      color: white;
+    }
+
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(107,31,58,0.4); }
+
+    .btn-secondary {
+      background: white;
+      color: var(--bordeaux-mid);
+      border: 2px solid var(--bordeaux-mid);
+    }
+
+    .btn-secondary:hover { background: var(--ivory-mid); }
+
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      color: var(--bordeaux-deep);
+    }
+
+    .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(201,168,76,0.4); }
+
+    #fileInput, #cameraInput { display: none; }
+
+    /* PREVIEW IMAGE */
+    .image-preview {
+      display: none;
+      margin-top: 20px;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .image-preview img {
+      width: 100%;
+      max-height: 260px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .image-preview .remove-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 32px;
+      height: 32px;
+      background: rgba(74,18,40,0.85);
+      border: none;
+      border-radius: 50%;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .analyze-btn-wrap { margin-top: 20px; text-align: center; }
+
+    /* LOADER */
+    .loader-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(74,18,40,0.92);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .loader-overlay.active { display: flex; }
+
+    .loader-spinner {
+      width: 60px;
+      height: 60px;
+      border: 3px solid rgba(201,168,76,0.2);
+      border-top-color: var(--gold-light);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 28px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-steps { text-align: center; }
+
+    .loader-step {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+      padding: 6px 0;
+      transition: all 0.3s;
+      letter-spacing: 0.5px;
+    }
+
+    .loader-step.active { color: var(--gold-light); font-weight: 500; font-size: 14px; }
+    .loader-step.done { color: rgba(255,255,255,0.6); }
+    .loader-step.done::before { content: '✓ '; color: var(--green); }
+
+    /* RESULT */
+    .result-card {
+      background: white;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(74,18,40,0.12);
+      margin-bottom: 20px;
+    }
+
+    .result-header {
+      background: linear-gradient(135deg, var(--bordeaux-deep), var(--bordeaux-mid));
+      padding: 24px 20px;
+      text-align: center;
+    }
+
+    .product-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 4px;
+    }
+
+    .product-category {
+      font-size: 11px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .score-circle {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: white;
+      margin: 20px auto 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+
+    .score-number {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .score-max { font-size: 12px; color: #999; }
+
+    .score-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: white;
+      letter-spacing: 0.5px;
+    }
+
+    .score-summary {
+      font-size: 12px;
+      color: rgba(255,255,255,0.75);
+      margin-top: 8px;
+      line-height: 1.5;
+      padding: 0 10px;
+    }
+
+    .score-excellent { color: var(--green); }
+    .score-bon { color: #3D9970; }
+    .score-passable { color: var(--orange); }
+    .score-mauvais { color: var(--red); }
+
+    /* INGREDIENT SECTIONS */
+    .ingredients-section { padding: 20px; }
+
+    .ingredient-group { margin-bottom: 16px; }
+
+    .group-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .group-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .group-red .group-dot { background: var(--red); }
+    .group-red .group-title-text { color: var(--red); }
+    .group-orange .group-dot { background: var(--orange); }
+    .group-orange .group-title-text { color: var(--orange); }
+    .group-green .group-dot { background: var(--green); }
+    .group-green .group-title-text { color: var(--green); }
+
+    .ingredient-item {
+      background: var(--ivory);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      border-left: 3px solid transparent;
+    }
+
+    .group-red .ingredient-item { border-left-color: var(--red); }
+    .group-orange .ingredient-item { border-left-color: var(--orange); }
+    .group-green .ingredient-item { border-left-color: var(--green); }
+
+    .ingredient-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-dark);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 50px;
+      font-weight: 500;
+    }
+
+    .group-red .badge { background: rgba(192,57,43,0.1); color: var(--red); }
+    .group-orange .badge { background: rgba(212,130,26,0.1); color: var(--orange); }
+    .group-green .badge { background: rgba(46,125,82,0.1); color: var(--green); }
+
+    .ingredient-desc { font-size: 12px; color: var(--text-mid); margin-top: 4px; line-height: 1.5; }
+
+    .empty-group { font-size: 12px; color: #aaa; font-style: italic; padding: 6px 0; }
+
+    /* VERDICT */
+    .verdict-section {
+      background: linear-gradient(135deg, var(--ivory-mid), var(--ivory));
+      border-top: 1px solid rgba(201,168,76,0.2);
+      padding: 20px;
+    }
+
+    .verdict-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--bordeaux-deep);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .verdict-text { font-size: 13px; color: var(--text-mid); line-height: 1.7; }
+
+    .new-scan-btn { padding: 20px; text-align: center; }
+
+    /* HISTORIQUE */
+    .history-section { padding: 20px; flex: 1; }
+
+    .history-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-mid);
+    }
+
+    .history-empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .history-empty h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      color: var(--bordeaux-mid);
+      margin-bottom: 8px;
+    }
+
+    .history-empty p { font-size: 13px; line-height: 1.5; }
+
+    .history-item {
+      background: white;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 8px rgba(74,18,40,0.06);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .history-item:hover { border-color: var(--gold); transform: translateX(2px); }
+
+    .history-thumb {
+      width: 52px;
+      height: 52px;
+      border-radius: 10px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .history-thumb-placeholder {
+      width: 52px;
+      height: 52px;
+      border-radius: 10px;
+      background: var(--ivory-mid);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .history-info { flex: 1; min-width: 0; }
+
+    .history-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-meta { font-size: 11px; color: var(--text-mid); margin-top: 2px; }
+
+    .history-score {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 24px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* GUIDE */
+    .guide-section { padding: 20px; flex: 1; }
+
+    .guide-intro {
+      background: linear-gradient(135deg, var(--bordeaux-deep), var(--bordeaux-mid));
+      border-radius: 16px;
+      padding: 20px;
+      color: white;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .guide-intro h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      color: var(--gold-light);
+      margin-bottom: 8px;
+    }
+
+    .guide-intro p { font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.8); }
+
+    .guide-card {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(74,18,40,0.06);
+    }
+
+    .guide-card-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--bordeaux-deep);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .guide-score-range {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .score-chip {
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .score-chip.excellent { background: rgba(46,125,82,0.1); color: var(--green); }
+    .score-chip.bon { background: rgba(61,153,112,0.1); color: #3D9970; }
+    .score-chip.passable { background: rgba(212,130,26,0.1); color: var(--orange); }
+    .score-chip.mauvais { background: rgba(192,57,43,0.1); color: var(--red); }
+
+    .guide-list { list-style: none; }
+    .guide-list li { font-size: 13px; color: var(--text-mid); padding: 5px 0; padding-left: 18px; position: relative; line-height: 1.5; }
+    .guide-list li::before { content: '→'; position: absolute; left: 0; color: var(--gold); }
+
+    .error-msg {
+      background: rgba(192,57,43,0.1);
+      border: 1px solid rgba(192,57,43,0.3);
+      color: var(--red);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 16px 0;
+      font-size: 13px;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .error-msg.visible { display: block; }
+
+    #result { display: none; }
+    #result.visible { display: block; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>CleanScan</h1>
+    <p>by Cycle Lifting · Barbara Almeida</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="scanner">Scanner</button>
+    <button class="tab" data-tab="historique">Historique</button>
+    <button class="tab" data-tab="guide">Guide</button>
+  </div>
+
+  <!-- SCANNER TAB -->
+  <div id="tab-scanner" class="tab-content active">
+    <div class="scanner-section">
+
+      <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm0 1.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zM20 4h-3.17L15 2H9L7.17 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/></svg>
+        </div>
+        <h3>Analysez vos produits</h3>
+        <p>Prenez en photo la liste d'ingrédients de votre cosmétique ou aliment</p>
+        <div class="upload-buttons">
+          <button class="btn btn-primary" onclick="document.getElementById('cameraInput').click()">Prendre une photo</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()">Galerie</button>
+        </div>
+      </div>
+
+      <input type="file" id="fileInput" accept="image/*" />
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" />
+
+      <div class="image-preview" id="imagePreview">
+        <img id="previewImg" src="" alt="Aperçu" />
+        <button class="remove-btn" onclick="removeImage()">✕</button>
+      </div>
+
+      <div class="error-msg" id="errorMsg"></div>
+
+      <div class="analyze-btn-wrap" id="analyzeWrap" style="display:none;">
+        <button class="btn btn-gold" onclick="analyzeImage()" style="font-size:15px;padding:16px 40px;">
+          Analyser ce produit
+        </button>
+      </div>
+
+      <div id="result">
+        <div class="result-card">
+          <div class="result-header">
+            <div class="product-name" id="productName"></div>
+            <div class="product-category" id="productCategory"></div>
+            <div class="score-circle">
+              <div class="score-number" id="scoreNumber"></div>
+              <div class="score-max">/20</div>
+            </div>
+            <div class="score-label" id="scoreLabel"></div>
+            <div class="score-summary" id="scoreSummary"></div>
+          </div>
+
+          <div class="ingredients-section">
+            <div class="ingredient-group group-red" id="groupRed">
+              <div class="group-title">
+                <div class="group-dot"></div>
+                <span class="group-title-text">À éviter</span>
+              </div>
+              <div id="listRed"></div>
+            </div>
+            <div class="ingredient-group group-orange" id="groupOrange">
+              <div class="group-title">
+                <div class="group-dot"></div>
+                <span class="group-title-text">À surveiller</span>
+              </div>
+              <div id="listOrange"></div>
+            </div>
+            <div class="ingredient-group group-green" id="groupGreen">
+              <div class="group-title">
+                <div class="group-dot"></div>
+                <span class="group-title-text">Bons ingrédients</span>
+              </div>
+              <div id="listGreen"></div>
+            </div>
+          </div>
+
+          <div class="verdict-section">
+            <div class="verdict-title">⚗️ Verdict expert</div>
+            <div class="verdict-text" id="verdictText"></div>
+          </div>
+        </div>
+        <div class="new-scan-btn">
+          <button class="btn btn-primary" onclick="newScan()">Nouveau scan</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- HISTORIQUE TAB -->
+  <div id="tab-historique" class="tab-content">
+    <div class="history-section">
+      <div class="history-empty" id="historyEmpty">
+        <div class="history-empty-icon">🔬</div>
+        <h3>Aucun scan encore</h3>
+        <p>Vos analyses apparaîtront ici au fil de la session</p>
+      </div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- GUIDE TAB -->
+  <div id="tab-guide" class="tab-content">
+    <div class="guide-section">
+      <div class="guide-intro">
+        <h2>Comment lire votre score</h2>
+        <p>CleanScan analyse chaque ingrédient selon les bases scientifiques et les référentiels clean beauty</p>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-title">📊 La notation sur 20</div>
+        <div class="guide-score-range">
+          <span class="score-chip excellent">18-20 · Excellent</span>
+          <span class="score-chip bon">14-17 · Bon</span>
+          <span class="score-chip passable">9-13 · Passable</span>
+          <span class="score-chip mauvais">0-8 · Mauvais</span>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-title">🔴 Ingrédients à éviter</div>
+        <ul class="guide-list">
+          <li>Perturbateurs endocriniens (parabènes, phtalates)</li>
+          <li>Allergènes puissants (certains parfums de synthèse)</li>
+          <li>Substances CMR (cancérigènes, mutagènes)</li>
+          <li>Conservateurs controversés (MIT, BHA/BHT)</li>
+        </ul>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-title">🟠 À surveiller</div>
+        <ul class="guide-list">
+          <li>Allergènes à faible concentration</li>
+          <li>Silicones non biodégradables</li>
+          <li>Colorants synthétiques</li>
+          <li>Agents moussants irritants (SLS/SLES)</li>
+        </ul>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-title">🟢 Bons ingrédients</div>
+        <ul class="guide-list">
+          <li>Actifs naturels certifiés bio</li>
+          <li>Huiles végétales non raffinées</li>
+          <li>Vitamines et antioxydants</li>
+          <li>Conservateurs naturels (tocophérol, acide citrique)</li>
+        </ul>
+      </div>
+
+      <div class="guide-card">
+        <div class="guide-card-title">📸 Conseils pour un bon scan</div>
+        <ul class="guide-list">
+          <li>Photographiez la liste INCI complète</li>
+          <li>Bonne lumière, texte net et lisible</li>
+          <li>Cadrer uniquement la liste d'ingrédients</li>
+          <li>Format JPEG ou PNG accepté</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- LOADER -->
+<div class="loader-overlay" id="loaderOverlay">
+  <div class="loader-spinner"></div>
+  <div class="loader-steps">
+    <div class="loader-step" id="step1">Compression de l'image</div>
+    <div class="loader-step" id="step2">Envoi au serveur</div>
+    <div class="loader-step" id="step3">Analyse des ingrédients</div>
+    <div class="loader-step" id="step4">Calcul du score</div>
+    <div class="loader-step" id="step5">Génération du rapport</div>
+  </div>
+</div>
+
+<script>
+  let currentImage = null;
+  const history = [];
+
+  // TABS
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // FILE INPUTS
+  document.getElementById('fileInput').addEventListener('change', e => handleFile(e.target.files[0]));
+  document.getElementById('cameraInput').addEventListener('change', e => handleFile(e.target.files[0]));
+
+  // DRAG & DROP
+  const uploadArea = document.getElementById('uploadArea');
+  uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      showPreview(e.target.result);
+      compressImage(e.target.result, compressed => { currentImage = compressed; });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function showPreview(src) {
+    document.getElementById('previewImg').src = src;
+    document.getElementById('imagePreview').style.display = 'block';
+    document.getElementById('analyzeWrap').style.display = 'block';
+    document.getElementById('result').classList.remove('visible');
+    document.getElementById('errorMsg').classList.remove('visible');
+  }
+
+  function removeImage() {
+    currentImage = null;
+    document.getElementById('imagePreview').style.display = 'none';
+    document.getElementById('analyzeWrap').style.display = 'none';
+    document.getElementById('previewImg').src = '';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('cameraInput').value = '';
+  }
+
+  function compressImage(dataUrl, callback) {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1024;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
+    };
+    img.src = dataUrl;
+  }
+
+  // LOADER STEPS
+  const steps = ['step1','step2','step3','step4','step5'];
+  let stepInterval = null;
+
+  function showLoader() {
+    document.getElementById('loaderOverlay').classList.add('active');
+    steps.forEach(s => {
+      const el = document.getElementById(s);
+      el.classList.remove('active','done');
+    });
+    let i = 0;
+    document.getElementById(steps[0]).classList.add('active');
+    stepInterval = setInterval(() => {
+      document.getElementById(steps[i]).classList.remove('active');
+      document.getElementById(steps[i]).classList.add('done');
+      i++;
+      if (i < steps.length) document.getElementById(steps[i]).classList.add('active');
+      else clearInterval(stepInterval);
+    }, 1200);
+  }
+
+  function hideLoader() {
+    clearInterval(stepInterval);
+    document.getElementById('loaderOverlay').classList.remove('active');
+  }
+
+  // ANALYZE
+  async function analyzeImage() {
+    if (!currentImage) return;
+    showLoader();
+    document.getElementById('errorMsg').classList.remove('visible');
+
+    const payload = {
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1500,
+      system: `Tu es CleanScan, expert en analyse d'ingrédients cosmétiques/alimentaires.
+Retourne UNIQUEMENT un JSON valide sans texte autour :
+{
+  "productName": "nom du produit ou type identifié",
+  "category": "catégorie (cosmétique, alimentaire, etc.)",
+  "score": nombre entre 0 et 20,
+  "scoreLabel": "Excellent ou Bon ou Passable ou Mauvais",
+  "scoreSummary": "résumé en 1 phrase",
+  "red": [{"name":"nom ingrédient","desc":"explication courte","badge":"type de problème"}],
+  "orange": [{"name":"","desc":"","badge":""}],
+  "green": [{"name":"","desc":"","badge":""}],
+  "verdict": "2-3 phrases ton expert clean living"
+}
+Notes : 0-8 mauvais, 9-13 passable, 14-17 bon, 18-20 excellent.
+Si tu ne vois pas de liste d'ingrédients lisible, indique-le dans scoreSummary et donne un score de 0.`,
+      messages: [{
+        role: 'user',
+        content: [{
+          type: 'image',
+          source: { type: 'base64', media_type: 'image/jpeg', data: currentImage }
+        }, {
+          type: 'text',
+          text: 'Analyse les ingrédients de ce produit et retourne le JSON demandé.'
+        }]
+      }]
+    };
+
+    try {
+      const res = await fetch('/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error?.message || `Erreur serveur ${res.status}`);
+      }
+
+      const text = data.content?.[0]?.text;
+      if (!text) throw new Error('Réponse vide de l\'API');
+
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Format de réponse invalide');
+
+      const result = JSON.parse(jsonMatch[0]);
+      hideLoader();
+      displayResult(result);
+      addToHistory(result);
+
+    } catch (err) {
+      hideLoader();
+      console.error(err);
+      showError('Erreur lors de l\'analyse : ' + err.message);
+    }
+  }
+
+  function displayResult(r) {
+    const scoreEl = document.getElementById('scoreNumber');
+    const score = r.score || 0;
+
+    scoreEl.textContent = score;
+    const cls = score >= 18 ? 'score-excellent' : score >= 14 ? 'score-bon' : score >= 9 ? 'score-passable' : 'score-mauvais';
+    scoreEl.className = 'score-number ' + cls;
+
+    document.getElementById('productName').textContent = r.productName || 'Produit analysé';
+    document.getElementById('productCategory').textContent = r.category || '';
+    document.getElementById('scoreLabel').textContent = r.scoreLabel || '';
+    document.getElementById('scoreSummary').textContent = r.scoreSummary || '';
+    document.getElementById('verdictText').textContent = r.verdict || '';
+
+    renderIngredients('listRed', r.red || []);
+    renderIngredients('listOrange', r.orange || []);
+    renderIngredients('listGreen', r.green || []);
+
+    document.getElementById('result').classList.add('visible');
+    document.getElementById('analyzeWrap').style.display = 'none';
+    document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderIngredients(containerId, items) {
+    const el = document.getElementById(containerId);
+    if (!items.length) {
+      el.innerHTML = '<div class="empty-group">Aucun ingrédient dans cette catégorie</div>';
+      return;
+    }
+    el.innerHTML = items.map(item => `
+      <div class="ingredient-item">
+        <div class="ingredient-name">
+          ${escHtml(item.name)}
+          ${item.badge ? `<span class="badge">${escHtml(item.badge)}</span>` : ''}
+        </div>
+        ${item.desc ? `<div class="ingredient-desc">${escHtml(item.desc)}</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  function addToHistory(result) {
+    const entry = { result, thumb: document.getElementById('previewImg').src, date: new Date() };
+    history.unshift(entry);
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const empty = document.getElementById('historyEmpty');
+    const list = document.getElementById('historyList');
+    if (!history.length) { empty.style.display = 'block'; list.innerHTML = ''; return; }
+    empty.style.display = 'none';
+    list.innerHTML = history.map((entry, i) => {
+      const score = entry.result.score || 0;
+      const cls = score >= 18 ? 'score-excellent' : score >= 14 ? 'score-bon' : score >= 9 ? 'score-passable' : 'score-mauvais';
+      const time = entry.date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      return `
+        <div class="history-item" onclick="showHistoryResult(${i})">
+          <img class="history-thumb" src="${entry.thumb}" alt="" onerror="this.style.display='none'" />
+          <div class="history-info">
+            <div class="history-name">${escHtml(entry.result.productName || 'Produit')}</div>
+            <div class="history-meta">${escHtml(entry.result.category || '')} · ${time}</div>
+          </div>
+          <div class="history-score ${cls}">${score}/20</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function showHistoryResult(i) {
+    const entry = history[i];
+    document.querySelector('[data-tab="scanner"]').click();
+    document.getElementById('previewImg').src = entry.thumb;
+    document.getElementById('imagePreview').style.display = 'block';
+    displayResult(entry.result);
+  }
+
+  function newScan() {
+    removeImage();
+    document.getElementById('result').classList.remove('visible');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>
